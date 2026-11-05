@@ -734,7 +734,7 @@
 </head>
 <body>
 
-  <!-- Musik latar. Autoplay dicoba saat halaman dibuka, lalu dinyalakan saat pengunjung berinteraksi -->
+  <!-- Musik latar -->
   <audio id="bgm" src="src/music/ww-music.mp3" loop preload="auto" playsinline></audio>
 
   <script>
@@ -1118,84 +1118,72 @@
 
   <script>
     /* ---------- MUSIC ---------- */
-    const bgm = document.getElementById("bgm");
-    const musicToggle = document.getElementById("musicToggle");
-    const UNLOCK_EVENTS = ["pointerdown", "keydown", "touchstart"];
+    (function () {
+      const bgm = document.getElementById("bgm");
+      const musicToggle = document.getElementById("musicToggle");
+      const UNLOCK_EVENTS = ["pointerdown", "keydown", "touchstart"];
+      bgm.volume = 0.3;
 
-    bgm.volume = 0.3;
+      bgm.addEventListener("error", () => {
+        console.error("Musik gagal dimuat. Periksa path src/music/ww-music.mp3 dan huruf besar/kecil namanya.", bgm.error);
+      });
 
-    // Preferensi pengunjung: true = musik dimatikan manual
-    let userMuted = localStorage.getItem("moonfang-music") === "0";
+      // true = pengunjung mematikan musik secara manual
+      let userMuted = localStorage.getItem("moonfang-music") === "0";
 
-    function renderMusicToggle() {
-      musicToggle.classList.toggle("off", userMuted);
-      musicToggle.setAttribute("aria-pressed", String(!userMuted));
-    }
-
-    // Dipanggil saat pengunjung pertama kali berinteraksi dengan halaman
-    function onFirstInteraction() {
-      removeUnlockListeners();
-      if (userMuted) return;
-      bgm.muted = false;
-      bgm.play().catch(() => {});
-    }
-
-    function addUnlockListeners() {
-      UNLOCK_EVENTS.forEach(evt =>
-        window.addEventListener(evt, onFirstInteraction, { once: true, passive: true })
-      );
-    }
-
-    function removeUnlockListeners() {
-      UNLOCK_EVENTS.forEach(evt => window.removeEventListener(evt, onFirstInteraction));
-    }
-
-    async function startMusic() {
-      if (userMuted) {
-        bgm.muted = true;
-        bgm.play().catch(() => {});
-        return;
+      function renderToggle() {
+        musicToggle.classList.toggle("off", userMuted);
+        musicToggle.setAttribute("aria-pressed", String(!userMuted));
       }
 
-      // 1. Coba putar langsung dengan suara
-      bgm.muted = false;
-      try {
-        await bgm.play();
-        return;
-      } catch (err) {
-        // Diblokir browser, lanjut ke langkah 2
-      }
-
-      // 2. Putar dalam keadaan senyap (biasanya diizinkan), lalu nyalakan suara saat ada interaksi
-      bgm.muted = true;
-      try {
-        await bgm.play();
-      } catch (err) {
-        // Jika tetap gagal, musik mulai saat interaksi pertama
-      }
-      addUnlockListeners();
-    }
-
-    musicToggle.addEventListener("click", async () => {
-      userMuted = !userMuted;
-      localStorage.setItem("moonfang-music", userMuted ? "0" : "1");
-      renderMusicToggle();
-
-      if (userMuted) {
-        bgm.muted = true;
-      } else {
-        bgm.muted = false;
-        removeUnlockListeners();
+      async function tryPlay() {
         try {
           await bgm.play();
+          return true;
         } catch (err) {
-          // Diabaikan
+          console.warn("Pemutaran musik diblokir:", err.name, err.message);
+          return false;
         }
       }
-    });
 
-    renderMusicToggle();
-    startMusic();
+      function onUnlock() {
+        if (userMuted) return;
+        bgm.muted = false;
+        tryPlay().then(ok => {
+          if (ok) UNLOCK_EVENTS.forEach(evt => window.removeEventListener(evt, onUnlock));
+        });
+      }
+
+      async function start() {
+        renderToggle();
+        if (userMuted) {
+          bgm.muted = true;
+          tryPlay();
+          return;
+        }
+        // 1. Coba putar dengan suara
+        bgm.muted = false;
+        if (await tryPlay()) return;
+        // 2. Putar senyap, lalu nyalakan suara saat ada interaksi pertama
+        bgm.muted = true;
+        await tryPlay();
+        UNLOCK_EVENTS.forEach(evt => window.addEventListener(evt, onUnlock, { passive: true }));
+      }
+
+      musicToggle.addEventListener("click", async () => {
+        userMuted = !userMuted;
+        localStorage.setItem("moonfang-music", userMuted ? "0" : "1");
+        renderToggle();
+        if (userMuted) {
+          bgm.muted = true;
+        } else {
+          bgm.muted = false;
+          await tryPlay();
+        }
+      });
+
+      start();
+    })();
   </script>
 </body>
 </html>
