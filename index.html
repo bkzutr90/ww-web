@@ -590,6 +590,63 @@
       transform: translate(-50%, -50%);
     }
 
+    /* ---------- PROMO (custom bot) ---------- */
+    .promo {
+      padding-top: 0;
+      padding-bottom: clamp(50px, 7vw, 90px);
+    }
+
+    .promo-box {
+      position: relative;
+      max-width: 880px;
+      margin: 0 auto;
+      padding: clamp(30px, 5vw, 56px) clamp(22px, 5vw, 60px);
+      text-align: center;
+      border: 1px solid var(--iron);
+      background: linear-gradient(170deg, rgba(23, 18, 26, 0.9), rgba(14, 11, 16, 0.9));
+      overflow: hidden;
+    }
+
+    .promo-box::before, .promo-box::after {
+      content: "";
+      position: absolute;
+      width: 46px;
+      height: 46px;
+      border-color: var(--blood-hot);
+      border-style: solid;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .promo-box::before { top: 10px; left: 10px; border-width: 1px 0 0 1px; }
+    .promo-box::after { bottom: 10px; right: 10px; border-width: 0 1px 1px 0; }
+
+    .promo-kicker {
+      font-family: var(--heading);
+      font-size: 0.7rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--blood-hot);
+      margin-bottom: 12px;
+    }
+
+    .promo-title {
+      text-transform: none;
+      letter-spacing: 0;
+      font-family: var(--script);
+      font-size: clamp(2rem, 4.5vw, 3rem);
+      color: var(--bone);
+      line-height: 1.15;
+      margin-bottom: 14px;
+    }
+
+    .promo-desc {
+      max-width: 560px;
+      margin: 0 auto 28px;
+      color: var(--bone-dim);
+      font-size: 1.08rem;
+    }
+
     /* ---------- FINAL ---------- */
     .final { text-align: center; }
 
@@ -735,6 +792,17 @@
       </div>
     </section>
 
+    <section class="promo">
+      <div class="wrap">
+        <div class="promo-box">
+          <div class="promo-kicker" data-i18n="promo_kicker">Custom Bot</div>
+          <h2 class="promo-title" data-i18n="promo_title">Want a custom Discord bot?</h2>
+          <p class="promo-desc" data-i18n="promo_desc">Need a bot built for your own server, with your own roles, rules and style? Reach out to the developer and let's talk.</p>
+          <a class="btn btn-ghost" data-i18n="promo_cta" data-dev href="#">Contact the Developer</a>
+        </div>
+      </div>
+    </section>
+
     <section class="final">
       <div class="wrap">
         <div class="final-title" data-i18n="final_title">The night is long.</div>
@@ -749,7 +817,7 @@
 
   <footer>
     <span>&copy; <span id="year"></span> Moonfang [Werewolf]</span>
-    <a data-dev href="#" data-i18n="footer_dev">Ferrsyz</a>
+    <a data-dev href="#" data-i18n="footer_dev">Developer</a>
   </footer>
 
   <script>
@@ -777,6 +845,10 @@
         final_desc: "Gather your friends, deal the roles, and see who still breathes when the sun returns.",
         final_cta: "Add to Discord",
         final_cta2: "Contact the Developer",
+        promo_kicker: "Custom Bot",
+        promo_title: "Want a custom Discord bot?",
+        promo_desc: "Need a bot built for your own server, with your own roles, rules and style? Reach out to the developer and let's talk.",
+        promo_cta: "Contact the Developer",
         footer_dev: "Developer",
         roles: [
           ["Werewolf", "Each night, with the other wolves, choose one villager to devour before the dawn.", true],
@@ -811,6 +883,10 @@
         final_desc: "Kumpulkan teman, bagikan peran, dan lihat siapa yang masih bernapas saat matahari kembali.",
         final_cta: "Tambahkan ke Discord",
         final_cta2: "Hubungi Developer",
+        promo_kicker: "Bot Custom",
+        promo_title: "Ingin membuat bot Discord custom? Hubungi developer",
+        promo_desc: "Butuh bot yang dibuat khusus untuk server kamu, dengan peran, aturan dan gaya sendiri? Hubungi developer dan kita diskusikan.",
+        promo_cta: "Hubungi Developer",
         footer_dev: "Developer",
         roles: [
           ["Werewolf", "Setiap malam, bersama serigala lain, pilih satu warga untuk dimangsa sebelum fajar.", true],
