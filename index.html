@@ -7,9 +7,9 @@
   <meta name="description" content="Play Werewolf with your friends right inside Discord. Eight roles, every secret action through buttons, no DMs needed." />
   <meta property="og:title" content="Moonfang [Werewolf]" />
   <meta property="og:description" content="Play Werewolf with your friends right inside Discord. Who will survive until morning?" />
-  <meta property="og:image" content="/moonfang-logo.png" />
+  <meta property="og:image" content="src/img/moonfang-logo.png" />
   <meta name="theme-color" content="#060507" />
-  <link rel="icon" href="/moonfang-logo.png" />
+  <link rel="icon" href="src/img/moonfang-logo.png" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -190,6 +190,30 @@
 
     .lang button:hover { color: var(--bone); }
     .lang button.active { color: var(--bone); border-color: var(--iron); }
+
+    /* Music mute toggle */
+    .music-toggle {
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--iron);
+      border-radius: 50%;
+      background: var(--stone);
+      color: var(--bone);
+      font-size: 1rem;
+      line-height: 1;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      transition: color 0.2s, border-color 0.2s, box-shadow 0.4s;
+    }
+
+    .music-toggle:hover { border-color: var(--blood-hot); box-shadow: 0 0 14px -4px var(--blood-hot); }
+
+    .music-toggle.off {
+      color: var(--bone-dim);
+      text-decoration: line-through;
+      text-decoration-thickness: 2px;
+    }
 
     /* Sun / moon theme toggle */
     .theme-toggle {
@@ -710,6 +734,9 @@
 </head>
 <body>
 
+  <!-- Musik latar. Autoplay dicoba saat halaman dibuka, lalu dinyalakan saat pengunjung berinteraksi -->
+  <audio id="bgm" src="src/music/ww-music.mp3" loop preload="auto" playsinline></audio>
+
   <script>
     // Link undangan bot Moonfang
     const INVITE_URL = "https://discord.com/oauth2/authorize?client_id=1561194019042631770";
@@ -724,7 +751,7 @@
 
   <nav>
     <a href="#top" class="brand">
-      <img src="/moonfang-logo.png" alt="" />
+      <img src="src/img/moonfang-logo.png" alt="" />
       <span>Moonfang</span>
     </a>
     <div class="nav-right">
@@ -732,6 +759,7 @@
         <button type="button" data-lang="id">ID</button>
         <button type="button" data-lang="en">EN</button>
       </div>
+      <button class="music-toggle" id="musicToggle" type="button" aria-label="Toggle music" title="Music">&#9834;</button>
       <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dusk and night"></button>
       <a class="btn btn-small" data-i18n="nav_cta" data-invite href="#">Join the Hunt</a>
     </div>
@@ -741,7 +769,7 @@
     <header class="hero" id="top">
       <div class="hero-inner">
         <div class="moon-stage" id="moonStage">
-          <img src="/moonfang-logo.png" alt="Moonfang Werewolf emblem" />
+          <img src="src/img/moonfang-logo.png" alt="Moonfang Werewolf emblem" />
         </div>
         <h1 class="title" aria-label="Moonfang">
           <span style="--i:0">M</span><span style="--i:1">O</span><span style="--i:2">O</span><span style="--i:3">N</span><span style="--i:4">F</span><span style="--i:5">A</span><span style="--i:6">N</span><span style="--i:7">G</span>
@@ -1086,6 +1114,88 @@
     window.addEventListener("resize", resize);
     resize();
     if (!matchMedia("(prefers-reduced-motion: reduce)").matches) drawEmbers();
+  </script>
+
+  <script>
+    /* ---------- MUSIC ---------- */
+    const bgm = document.getElementById("bgm");
+    const musicToggle = document.getElementById("musicToggle");
+    const UNLOCK_EVENTS = ["pointerdown", "keydown", "touchstart"];
+
+    bgm.volume = 0.3;
+
+    // Preferensi pengunjung: true = musik dimatikan manual
+    let userMuted = localStorage.getItem("moonfang-music") === "0";
+
+    function renderMusicToggle() {
+      musicToggle.classList.toggle("off", userMuted);
+      musicToggle.setAttribute("aria-pressed", String(!userMuted));
+    }
+
+    // Dipanggil saat pengunjung pertama kali berinteraksi dengan halaman
+    function onFirstInteraction() {
+      removeUnlockListeners();
+      if (userMuted) return;
+      bgm.muted = false;
+      bgm.play().catch(() => {});
+    }
+
+    function addUnlockListeners() {
+      UNLOCK_EVENTS.forEach(evt =>
+        window.addEventListener(evt, onFirstInteraction, { once: true, passive: true })
+      );
+    }
+
+    function removeUnlockListeners() {
+      UNLOCK_EVENTS.forEach(evt => window.removeEventListener(evt, onFirstInteraction));
+    }
+
+    async function startMusic() {
+      if (userMuted) {
+        bgm.muted = true;
+        bgm.play().catch(() => {});
+        return;
+      }
+
+      // 1. Coba putar langsung dengan suara
+      bgm.muted = false;
+      try {
+        await bgm.play();
+        return;
+      } catch (err) {
+        // Diblokir browser, lanjut ke langkah 2
+      }
+
+      // 2. Putar dalam keadaan senyap (biasanya diizinkan), lalu nyalakan suara saat ada interaksi
+      bgm.muted = true;
+      try {
+        await bgm.play();
+      } catch (err) {
+        // Jika tetap gagal, musik mulai saat interaksi pertama
+      }
+      addUnlockListeners();
+    }
+
+    musicToggle.addEventListener("click", async () => {
+      userMuted = !userMuted;
+      localStorage.setItem("moonfang-music", userMuted ? "0" : "1");
+      renderMusicToggle();
+
+      if (userMuted) {
+        bgm.muted = true;
+      } else {
+        bgm.muted = false;
+        removeUnlockListeners();
+        try {
+          await bgm.play();
+        } catch (err) {
+          // Diabaikan
+        }
+      }
+    });
+
+    renderMusicToggle();
+    startMusic();
   </script>
 </body>
 </html>
