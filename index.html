@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Moonfang [Werewolf]</title>
+  <meta name="description" content="Play Werewolf with your friends right inside Discord. Eight roles, every secret action through buttons, no DMs needed." />
+  <meta property="og:title" content="Moonfang [Werewolf]" />
+  <meta property="og:description" content="Play Werewolf with your friends right inside Discord. Who will survive until morning?" />
+  <meta property="og:image" content="/moonfang-logo.png" />
+  <meta name="theme-color" content="#060507" />
+  <link rel="icon" href="/moonfang-logo.png" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700;900&family=Cinzel:wght@400;600;700&family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=UnifrakturMaguntia&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --void: #060507;
+      --stone: #0e0b10;
+      --crypt: #17121a;
+      --bone: #d9cdb8;
+      --bone-dim: #8e8273;
+      --blood: #8a0f1c;
+      --blood-hot: #d7242f;
+      --moon: #bcd4ff;
+      --moon-glow: rgba(120, 165, 255, 0.35);
+      --iron: #3a3340;
+      --display: "Cinzel Decorative", "Cinzel", serif;
+      --heading: "Cinzel", Georgia, serif;
+      --body: "EB Garamond", Garamond, Georgia, serif;
+      --script: "UnifrakturMaguntia", "Cinzel", serif;
+      --mx: 0;
+      --my: 0;
+    }
+
+    /* Dusk theme: toggled by the sun/moon control */
+    body.dusk {
+      --blood: #6b1020;
+      --blood-hot: #ff4b3a;
+      --moon: #ffcf9e;
+      --moon-glow: rgba(255, 150, 90, 0.35);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--void);
+      color: var(--bone);
+      font-family: var(--body);
+      font-size: 1.12rem;
+      line-height: 1.55;
+      overflow-x: hidden;
+      cursor: none;
+      transition: background 0.8s ease;
+    }
+
+    body.touch { cursor: auto; }
+
+    a, button { color: inherit; font: inherit; cursor: none; }
+    body.touch a, body.touch button { cursor: pointer; }
+    a { text-decoration: none; }
+
+    img { max-width: 100%; display: block; }
+
+    /* ---------- FIXED BACKGROUND LAYERS ---------- */
+    #embers {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    .vignette {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse at center, transparent 40%, rgba(0, 0, 0, 0.85) 100%);
+    }
+
+    .grain {
+      position: fixed;
+      inset: -50%;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0.06;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      animation: grain 1.2s steps(6) infinite;
+    }
+
+    @keyframes grain {
+      0% { transform: translate(0, 0); }
+      20% { transform: translate(-4%, 3%); }
+      40% { transform: translate(3%, -5%); }
+      60% { transform: translate(-2%, 6%); }
+      80% { transform: translate(5%, 2%); }
+      100% { transform: translate(0, 0); }
+    }
+
+    main, nav, footer { position: relative; z-index: 5; }
+
+    /* ---------- CURSOR ---------- */
+    .cursor-glow {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 340px;
+      height: 340px;
+      margin: -170px 0 0 -170px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--moon-glow), transparent 60%);
+      pointer-events: none;
+      z-index: 3;
+      mix-blend-mode: screen;
+      transition: opacity 0.3s;
+    }
+
+    .cursor-dot {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 10px;
+      height: 10px;
+      margin: -5px 0 0 -5px;
+      border-radius: 50%;
+      background: var(--blood-hot);
+      box-shadow: 0 0 12px var(--blood-hot);
+      pointer-events: none;
+      z-index: 9999;
+      transition: transform 0.15s ease, background 0.2s;
+    }
+
+    body.hovering .cursor-dot { transform: scale(2.6); background: var(--moon); box-shadow: 0 0 18px var(--moon); }
+
+    body.touch .cursor-dot, body.touch .cursor-glow { display: none; }
+
+    /* ---------- NAV ---------- */
+    nav {
+      position: sticky;
+      top: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px clamp(20px, 5vw, 70px);
+      background: linear-gradient(to bottom, rgba(6, 5, 7, 0.95), rgba(6, 5, 7, 0.6));
+      backdrop-filter: blur(4px);
+      border-bottom: 1px solid rgba(217, 205, 184, 0.08);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: var(--heading);
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-size: 0.95rem;
+    }
+
+    .brand img {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid var(--iron);
+    }
+
+    .nav-right { display: flex; align-items: center; gap: 18px; }
+
+    .lang { display: flex; gap: 6px; }
+
+    .lang button {
+      background: none;
+      border: 1px solid transparent;
+      color: var(--bone-dim);
+      font-family: var(--heading);
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      padding: 4px 8px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .lang button:hover { color: var(--bone); }
+    .lang button.active { color: var(--bone); border-color: var(--iron); }
+
+    /* Sun / moon theme toggle */
+    .theme-toggle {
+      position: relative;
+      width: 56px;
+      height: 28px;
+      border: 1px solid var(--iron);
+      border-radius: 999px;
+      background: var(--stone);
+      padding: 0;
+    }
+
+    .theme-toggle::after {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--moon);
+      box-shadow: 0 0 12px var(--moon-glow);
+      transition: transform 0.5s cubic-bezier(.6, .1, .2, 1);
+    }
+
+    body.dusk .theme-toggle::after { transform: translateX(28px); }
+
+    /* ---------- BUTTONS ---------- */
+    .btn {
+      position: relative;
+      display: inline-block;
+      overflow: hidden;
+      padding: 14px 30px;
+      font-family: var(--heading);
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--bone);
+      border: 1px solid var(--blood-hot);
+      background: rgba(138, 15, 28, 0.15);
+      transition: color 0.3s, box-shadow 0.4s;
+      isolation: isolate;
+    }
+
+    .btn::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent 30%, var(--blood-hot) 50%, transparent 70%);
+      transform: translateX(-120%);
+      transition: transform 0.6s ease;
+      z-index: -1;
+    }
+
+    .btn:hover::before { transform: translateX(120%); }
+    .btn:hover { color: #fff; box-shadow: 0 0 30px -4px var(--blood-hot); }
+
+    .btn-ghost {
+      border-color: var(--iron);
+      background: transparent;
+    }
+
+    .btn-ghost::before { background: linear-gradient(120deg, transparent 30%, var(--moon-glow) 50%, transparent 70%); }
+    .btn-ghost:hover { box-shadow: 0 0 24px -4px var(--moon-glow); }
+
+    .btn-small { padding: 9px 18px; font-size: 0.72rem; }
+
+    /* ---------- HERO ---------- */
+    .hero {
+      min-height: calc(100vh - 70px);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      padding: 60px 20px 90px;
+      position: relative;
+    }
+
+    .hero-inner { max-width: 900px; }
+
+    .moon-stage {
+      position: relative;
+      width: min(68vw, 420px);
+      aspect-ratio: 1;
+      margin: 0 auto 10px;
+    }
+
+    .moon-stage img {
+      width: 100%;
+      transform: translate(calc(var(--mx) * -18px), calc(var(--my) * -18px)) rotate(calc(var(--mx) * 2deg));
+      transition: transform 0.4s cubic-bezier(.2, .7, .2, 1);
+      filter: drop-shadow(0 0 30px var(--moon-glow));
+      animation: breathe 6s ease-in-out infinite;
+    }
+
+    @keyframes breathe {
+      0%, 100% { filter: drop-shadow(0 0 22px var(--moon-glow)); }
+      50% { filter: drop-shadow(0 0 48px var(--moon-glow)); }
+    }
+
+    .moon-stage::after {
+      content: "";
+      position: absolute;
+      inset: -18%;
+      border-radius: 50%;
+      border: 1px dashed rgba(217, 205, 184, 0.15);
+      animation: spin 60s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .title {
+      font-family: var(--display);
+      font-weight: 900;
+      font-size: clamp(2.8rem, 9vw, 7rem);
+      line-height: 1;
+      letter-spacing: 0.04em;
+      color: var(--bone);
+      text-shadow: 0 0 40px rgba(0, 0, 0, 0.9);
+      margin-top: -10px;
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .title span {
+      display: inline-block;
+      opacity: 0;
+      transform: translateY(30px) scale(0.9);
+      animation: letterIn 0.9s cubic-bezier(.2, .8, .2, 1) forwards;
+      animation-delay: calc(var(--i) * 0.09s + 0.3s);
+    }
+
+    .title span:hover {
+      color: var(--blood-hot);
+      text-shadow: 0 0 20px var(--blood-hot);
+      transition: color 0.2s;
+    }
+
+    @keyframes letterIn {
+      to { opacity: 1; transform: none; }
+    }
+
+    .sub {
+      font-family: var(--script);
+      font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+      color: var(--blood-hot);
+      margin: 6px 0 18px;
+      opacity: 0;
+      animation: fadeUp 1s ease 1.6s forwards;
+    }
+
+    .lead {
+      max-width: 620px;
+      margin: 0 auto 34px;
+      font-size: 1.2rem;
+      color: var(--bone-dim);
+      opacity: 0;
+      animation: fadeUp 1s ease 1.9s forwards;
+    }
+
+    .cta-row {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      opacity: 0;
+      animation: fadeUp 1s ease 2.2s forwards;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: none; }
+    }
+
+    .scroll-hint {
+      position: absolute;
+      bottom: 26px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: var(--heading);
+      font-size: 0.7rem;
+      letter-spacing: 0.3em;
+      color: var(--bone-dim);
+      animation: bob 2.4s ease-in-out infinite;
+    }
+
+    @keyframes bob {
+      0%, 100% { transform: translate(-50%, 0); }
+      50% { transform: translate(-50%, 8px); }
+    }
+
+    /* ---------- SECTIONS ---------- */
+    section { padding: clamp(70px, 10vw, 130px) clamp(20px, 6vw, 80px); }
+
+    .wrap { max-width: 1180px; margin: 0 auto; }
+
+    .ornament {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      color: var(--blood-hot);
+      font-size: 1.1rem;
+      margin-bottom: 14px;
+    }
+
+    .ornament::before, .ornament::after {
+      content: "";
+      width: 90px;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--blood-hot));
+    }
+
+    .ornament::after { transform: scaleX(-1); }
+
+    h2 {
+      font-family: var(--heading);
+      font-weight: 700;
+      font-size: clamp(2rem, 4.5vw, 3.2rem);
+      text-align: center;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--bone);
+      margin-bottom: 14px;
+    }
+
+    .section-lead {
+      text-align: center;
+      max-width: 640px;
+      margin: 0 auto 56px;
+      color: var(--bone-dim);
+    }
+
+    /* ---------- ROLE CARDS (flip) ---------- */
+    .deck {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+      gap: 26px;
+      perspective: 1200px;
+    }
+
+    .card {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: none;
+      border: none;
+      padding: 0;
+      text-align: left;
+      transform-style: preserve-3d;
+      transition: transform 0.9s cubic-bezier(.2, .7, .2, 1);
+    }
+
+    .card.flipped { transform: rotateY(180deg); }
+
+    .card-face {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      border: 1px solid var(--iron);
+      background: linear-gradient(170deg, var(--crypt), var(--stone));
+      padding: 28px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    .card-face::before {
+      content: "";
+      position: absolute;
+      inset: 8px;
+      border: 1px solid rgba(217, 205, 184, 0.08);
+      pointer-events: none;
+    }
+
+    .card-back {
+      transform: rotateY(180deg);
+      background: linear-gradient(170deg, #1d0a10, #0a0508);
+      border-color: var(--blood);
+    }
+
+    .card-numeral {
+      font-family: var(--heading);
+      font-size: 0.8rem;
+      letter-spacing: 0.3em;
+      color: var(--bone-dim);
+    }
+
+    .card-name {
+      font-family: var(--display);
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: var(--bone);
+      line-height: 1.1;
+    }
+
+    .card-sigil {
+      font-family: var(--script);
+      font-size: 2.6rem;
+      color: var(--blood-hot);
+      opacity: 0.85;
+      line-height: 1;
+      transition: transform 0.6s ease, text-shadow 0.6s;
+    }
+
+    .card:hover .card-sigil { transform: scale(1.12) rotate(-4deg); text-shadow: 0 0 22px var(--blood-hot); }
+
+    .card-hint {
+      font-family: var(--heading);
+      font-size: 0.65rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--bone-dim);
+    }
+
+    .card-text {
+      font-size: 1.08rem;
+      color: var(--bone);
+      line-height: 1.5;
+    }
+
+    .card-face.has-art { padding: 0; border-color: var(--iron); }
+    .card-face.has-art::before { display: none; }
+
+    .card-art {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .card-wolf .card-face { border-color: rgba(215, 36, 47, 0.45); }
+    .card-wolf .card-sigil { color: var(--blood-hot); }
+
+    /* ---------- RITES (scroll reveal) ---------- */
+    .rites {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 40px;
+      counter-reset: rite;
+    }
+
+    .rite {
+      text-align: center;
+      padding: 10px 14px;
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.9s ease, transform 0.9s ease;
+    }
+
+    .rite.in { opacity: 1; transform: none; }
+
+    .rite-num {
+      font-family: var(--display);
+      font-size: 4.5rem;
+      font-weight: 900;
+      line-height: 1;
+      color: transparent;
+      -webkit-text-stroke: 1px var(--blood-hot);
+      margin-bottom: 10px;
+      transition: color 0.4s, -webkit-text-stroke-color 0.4s;
+    }
+
+    .rite:hover .rite-num { color: var(--blood); -webkit-text-stroke-color: var(--blood-hot); }
+
+    .rite h3 {
+      font-family: var(--heading);
+      font-size: 1.15rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      color: var(--bone);
+    }
+
+    .rite p { color: var(--bone-dim); }
+
+    /* ---------- DIVIDER ---------- */
+    .divider {
+      height: 120px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .divider::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 1px;
+      height: 100px;
+      background: linear-gradient(to bottom, transparent, var(--blood-hot), transparent);
+      transform: translate(-50%, -50%);
+    }
+
+    /* ---------- FINAL ---------- */
+    .final { text-align: center; }
+
+    .final-title {
+      font-family: var(--script);
+      font-size: clamp(3rem, 7vw, 5.5rem);
+      color: var(--bone);
+      line-height: 1.1;
+      margin-bottom: 14px;
+      text-shadow: 0 0 30px var(--blood);
+    }
+
+    .final p {
+      max-width: 560px;
+      margin: 0 auto 36px;
+      color: var(--bone-dim);
+      font-size: 1.15rem;
+    }
+
+    .cta-row.center { justify-content: center; }
+
+    /* ---------- FOOTER ---------- */
+    footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      padding: 30px clamp(20px, 6vw, 80px);
+      border-top: 1px solid rgba(217, 205, 184, 0.08);
+      font-family: var(--heading);
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--bone-dim);
+    }
+
+    footer a:hover { color: var(--blood-hot); }
+
+    /* ---------- RESPONSIVE ---------- */
+    @media (max-width: 700px) {
+      .brand span { display: none; }
+      .nav-right .btn { display: none; }
+      .deck { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+      .card-name { font-size: 1.2rem; }
+      .card-text { font-size: 0.82rem; line-height: 1.4; }
+      .card-hint { font-size: 0.55rem; }
+      .card-face { padding: 16px 14px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+      }
+      .title span, .sub, .lead, .cta-row { opacity: 1; transform: none; }
+      .rite { opacity: 1; transform: none; }
+      #embers, .grain { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <script>
+    // Ganti CLIENT_ID dengan Application ID bot Anda dari Discord Developer Portal
+    const INVITE_URL = "https://discord.com/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=0&scope=bot%20applications.commands";
+    const DEVELOPER_URL = "https://discord.com/users/1561194019042631770";
+  </script>
+
+  <canvas id="embers"></canvas>
+  <div class="vignette"></div>
+  <div class="grain"></div>
+  <div class="cursor-glow" id="cursorGlow"></div>
+  <div class="cursor-dot" id="cursorDot"></div>
+
+  <nav>
+    <a href="#top" class="brand">
+      <img src="/moonfang-logo.png" alt="" />
+      <span>Moonfang</span>
+    </a>
+    <div class="nav-right">
+      <div class="lang" role="group" aria-label="Language">
+        <button type="button" data-lang="id">ID</button>
+        <button type="button" data-lang="en">EN</button>
+      </div>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dusk and night"></button>
+      <a class="btn btn-small" data-i18n="nav_cta" data-invite href="#">Join the Hunt</a>
+    </div>
+  </nav>
+
+  <main>
+    <header class="hero" id="top">
+      <div class="hero-inner">
+        <div class="moon-stage" id="moonStage">
+          <img src="/moonfang-logo.png" alt="Moonfang Werewolf emblem" />
+        </div>
+        <h1 class="title" aria-label="Moonfang">
+          <span style="--i:0">M</span><span style="--i:1">O</span><span style="--i:2">O</span><span style="--i:3">N</span><span style="--i:4">F</span><span style="--i:5">A</span><span style="--i:6">N</span><span style="--i:7">G</span>
+        </h1>
+        <div class="sub" data-i18n="hero_sub">Werewolf</div>
+        <p class="lead" data-i18n="hero_desc">Play Werewolf with your friends right inside Discord. Eight roles, every secret action through buttons, no DMs needed.</p>
+        <div class="cta-row">
+          <a class="btn" data-i18n="hero_cta" data-invite href="#">Summon the Game</a>
+          <a class="btn btn-ghost" data-i18n="hero_cta2" href="#deck">Reveal the Roles</a>
+        </div>
+      </div>
+      <div class="scroll-hint" data-i18n="scroll">DESCEND</div>
+    </header>
+
+    <section id="deck">
+      <div class="wrap">
+        <div class="ornament">&#10022;</div>
+        <h2 data-i18n="roles_title">The Roles</h2>
+        <p class="section-lead" data-i18n="roles_desc">Click a card to reveal its secret. Wolves want to devour the village; the village wants to find the wolves. Which side are you on?</p>
+        <div class="deck" id="deckGrid"></div>
+      </div>
+    </section>
+
+    <div class="divider"></div>
+
+    <section>
+      <div class="wrap">
+        <div class="ornament">&#10022;</div>
+        <h2 data-i18n="how_title">The Three Rites</h2>
+        <p class="section-lead" data-i18n="how_desc">Three steps and you stand in the middle of the village.</p>
+        <div class="rites">
+          <div class="rite reveal">
+            <div class="rite-num">I</div>
+            <h3 data-i18n="s1_t">Invite the bot</h3>
+            <p data-i18n="s1_d">Add Moonfang to your Discord server and gather the ones you trust, and the ones you don't.</p>
+          </div>
+          <div class="rite reveal">
+            <div class="rite-num">II</div>
+            <h3 data-i18n="s2_t">Receive your fate</h3>
+            <p data-i18n="s2_d">Every player is dealt a secret role. Speak it to no one, or lie beautifully.</p>
+          </div>
+          <div class="rite reveal">
+            <div class="rite-num">III</div>
+            <h3 data-i18n="s3_t">Survive until dawn</h3>
+            <p data-i18n="s3_d">Night for the hunt and the healing, day for accusation and the vote. Who will see the sunrise?</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="final">
+      <div class="wrap">
+        <div class="final-title" data-i18n="final_title">The night is long.</div>
+        <p data-i18n="final_desc">Gather your friends, deal the roles, and see who still breathes when the sun returns.</p>
+        <div class="cta-row center">
+          <a class="btn" data-i18n="final_cta" data-invite href="#">Add to Discord</a>
+          <a class="btn btn-ghost" data-i18n="final_cta2" data-dev href="#">Contact the Developer</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>&copy; <span id="year"></span> Moonfang [Werewolf]</span>
+    <a data-dev href="#" data-i18n="footer_dev">Developer</a>
+  </footer>
+
+  <script>
+    /* ---------- TRANSLATIONS ---------- */
+    const dict = {
+      en: {
+        title: "Moonfang [Werewolf]",
+        desc: "Play Werewolf with your friends right inside Discord. Eight roles, every secret action through buttons, no DMs needed.",
+        nav_cta: "Join the Hunt",
+        hero_sub: "Werewolf",
+        hero_desc: "Play Werewolf with your friends right inside Discord. Eight roles, every secret action through buttons, no DMs needed.",
+        hero_cta: "Summon the Game",
+        hero_cta2: "Reveal the Roles",
+        scroll: "DESCEND",
+        roles_title: "The Roles",
+        roles_desc: "Click a card to reveal its secret. Wolves want to devour the village; the village wants to find the wolves. Which side are you on?",
+        flip_hint: "Click to reveal",
+        flip_back: "Click to hide",
+        how_title: "The Three Rites",
+        how_desc: "Three steps and you stand in the middle of the village.",
+        s1_t: "Invite the bot", s1_d: "Add Moonfang to your Discord server and gather the ones you trust, and the ones you don't.",
+        s2_t: "Receive your fate", s2_d: "Every player is dealt a secret role. Speak it to no one, or lie beautifully.",
+        s3_t: "Survive until dawn", s3_d: "Night for the hunt and the healing, day for accusation and the vote. Who will see the sunrise?",
+        final_title: "The night is long.",
+        final_desc: "Gather your friends, deal the roles, and see who still breathes when the sun returns.",
+        final_cta: "Add to Discord",
+        final_cta2: "Contact the Developer",
+        footer_dev: "Developer",
+        roles: [
+          ["Werewolf", "Each night, with the other wolves, choose one villager to devour before the dawn.", true],
+          ["Seer", "Each night, peer into one soul and learn whether it bears the wolf's mark.", false],
+          ["Guardian", "Each night, stand watch over one player and shield them from the wolves' jaws.", false],
+          ["Witch", "Hold a healing potion and a deadly poison. Each may be used only once.", false],
+          ["Hunter", "When you fall, fire one last arrow and drag another player into death.", false],
+          ["Mayor", "The village trusts your word. Your vote counts for more at the day's trial.", false],
+          ["Lycan", "An ordinary villager, cursed to appear as a wolf to the Seer's gaze.", true],
+          ["Villager", "No power of your own. Your weapons are observation, suspicion and your vote.", false]
+        ]
+      },
+      id: {
+        title: "Moonfang [Werewolf]",
+        desc: "Mainkan Werewolf bersama teman-temanmu langsung di dalam Discord. Delapan peran, semua aksi rahasia lewat tombol, tanpa perlu DM.",
+        nav_cta: "Ikut Berburu",
+        hero_sub: "Werewolf",
+        hero_desc: "Mainkan Werewolf bersama teman-temanmu langsung di dalam Discord. Delapan peran, semua aksi rahasia lewat tombol, tanpa perlu DM.",
+        hero_cta: "Panggil Permainan",
+        hero_cta2: "Lihat Peran",
+        scroll: "TURUN",
+        roles_title: "Peran",
+        roles_desc: "Klik kartu untuk membuka rahasianya. Serigala ingin memangsa desa; desa ingin menemukan serigala. Kamu ada di pihak yang mana?",
+        flip_hint: "Klik untuk membuka",
+        flip_back: "Klik untuk menutup",
+        how_title: "Tiga Ritual",
+        how_desc: "Tiga langkah dan kamu sudah berdiri di tengah desa.",
+        s1_t: "Undang bot", s1_d: "Tambahkan Moonfang ke server Discord kamu, lalu kumpulkan orang yang kamu percaya, dan yang tidak.",
+        s2_t: "Terima takdirmu", s2_d: "Setiap pemain mendapat peran rahasia. Jangan beri tahu siapa pun, atau berbohonglah dengan indah.",
+        s3_t: "Bertahan sampai fajar", s3_d: "Malam untuk berburu dan menyembuhkan, siang untuk menuduh dan voting. Siapa yang akan melihat matahari terbit?",
+        final_title: "Malam ini panjang.",
+        final_desc: "Kumpulkan teman, bagikan peran, dan lihat siapa yang masih bernapas saat matahari kembali.",
+        final_cta: "Tambahkan ke Discord",
+        final_cta2: "Hubungi Developer",
+        footer_dev: "Developer",
+        roles: [
+          ["Werewolf", "Setiap malam, bersama serigala lain, pilih satu warga untuk dimangsa sebelum fajar.", true],
+          ["Seer", "Setiap malam, intip satu jiwa dan ketahui apakah ia membawa tanda serigala.", false],
+          ["Guardian", "Setiap malam, jaga satu pemain dan lindungi ia dari taring serigala.", false],
+          ["Witch", "Memiliki ramuan penyembuh dan racun mematikan. Masing-masing hanya bisa dipakai sekali.", false],
+          ["Hunter", "Saat kamu tumbang, lepaskan satu panah terakhir dan seret pemain lain ke dalam kematian.", false],
+          ["Mayor", "Desa percaya pada kata-katamu. Suaramu lebih berarti saat sidang siang hari.", false],
+          ["Lycan", "Warga biasa yang terkutuk, tampak seperti serigala di mata Seer.", true],
+          ["Villager", "Tanpa kuasa khusus. Senjatamu adalah pengamatan, kecurigaan, dan suaramu.", false]
+        ]
+      }
+    };
+
+    let currentLang = "en";
+
+    // Artwork per peran, sesuai urutan array roles (null = belum ada artwork)
+    const ART = [
+      "werewolf",     // Werewolf
+      "seer",         // Seer
+      "guardian",     // Guardian
+      "penyihir",     // Witch
+      "pemburu",      // Hunter
+      "kepala-desa",  // Mayor
+      "lycan",        // Lycan
+      "warga"         // Villager
+    ];
+
+    /* ---------- LANGUAGE ---------- */
+    const langButtons = document.querySelectorAll(".lang button");
+    const deckGrid = document.getElementById("deckGrid");
+
+    function buildDeck(lang) {
+      const t = dict[lang];
+      deckGrid.innerHTML = "";
+      t.roles.forEach(([name, text, isWolf], i) => {
+        const art = ART[i];
+        const card = document.createElement("button");
+        card.type = "button";
+        card.className = "card" + (isWolf ? " card-wolf" : "");
+        card.setAttribute("aria-pressed", "false");
+        card.setAttribute("aria-label", name);
+        card.innerHTML = `
+          <div class="card-face card-front${art ? " has-art" : ""}">
+            ${art
+              ? `<img class="card-art" src="cards/${art}.png" alt="${name}" loading="lazy" />`
+              : `<div class="card-numeral">${["I","II","III","IV","V","VI","VII","VIII"][i]}</div>
+                 <div class="card-sigil">&#9768;</div>
+                 <div>
+                   <div class="card-name">${name}</div>
+                   <div class="card-hint">${t.flip_hint}</div>
+                 </div>`}
+          </div>
+          <div class="card-face card-back">
+            <div class="card-numeral">${name}</div>
+            <div class="card-text">${text}</div>
+            <div class="card-hint">${t.flip_back}</div>
+          </div>`;
+        card.addEventListener("click", () => {
+          const flipped = card.classList.toggle("flipped");
+          card.setAttribute("aria-pressed", String(flipped));
+        });
+        deckGrid.appendChild(card);
+      });
+    }
+
+    function applyLang(lang) {
+      currentLang = lang;
+      const t = dict[lang];
+      document.documentElement.lang = lang;
+      document.title = t.title;
+      document.querySelector('meta[name="description"]').content = t.desc;
+
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const value = t[el.dataset.i18n];
+        if (typeof value === "string") el.textContent = value;
+      });
+
+      langButtons.forEach(b => b.classList.toggle("active", b.dataset.lang === lang));
+      buildDeck(lang);
+      localStorage.setItem("moonfang-lang", lang);
+    }
+
+    langButtons.forEach(b => b.addEventListener("click", () => applyLang(b.dataset.lang)));
+
+    const saved = localStorage.getItem("moonfang-lang");
+    applyLang(saved || ((navigator.language || "en").toLowerCase().startsWith("id") ? "id" : "en"));
+
+    document.querySelectorAll("[data-invite]").forEach(a => {
+      a.href = INVITE_URL; a.target = "_blank"; a.rel = "noopener";
+    });
+    document.querySelectorAll("[data-dev]").forEach(a => {
+      a.href = DEVELOPER_URL; a.target = "_blank"; a.rel = "noopener";
+    });
+    document.getElementById("year").textContent = new Date().getFullYear();
+
+    /* ---------- DUSK / NIGHT TOGGLE ---------- */
+    const themeToggle = document.getElementById("themeToggle");
+    if (localStorage.getItem("moonfang-dusk") === "1") document.body.classList.add("dusk");
+    themeToggle.addEventListener("click", () => {
+      document.body.classList.toggle("dusk");
+      localStorage.setItem("moonfang-dusk", document.body.classList.contains("dusk") ? "1" : "0");
+    });
+
+    /* ---------- CURSOR + MOON PARALLAX ---------- */
+    const isTouch = matchMedia("(pointer: coarse)").matches;
+    if (isTouch) document.body.classList.add("touch");
+
+    const glow = document.getElementById("cursorGlow");
+    const dot = document.getElementById("cursorDot");
+    const root = document.documentElement;
+
+    if (!isTouch) {
+      let mx = 0, my = 0, gx = 0, gy = 0;
+      window.addEventListener("mousemove", e => {
+        mx = e.clientX; my = e.clientY;
+        dot.style.transform = `translate(${mx}px, ${my}px)`;
+        const nx = (e.clientX / window.innerWidth) * 2 - 1;
+        const ny = (e.clientY / window.innerHeight) * 2 - 1;
+        root.style.setProperty("--mx", nx.toFixed(3));
+        root.style.setProperty("--my", ny.toFixed(3));
+      });
+
+      (function followGlow() {
+        gx += (mx - gx) * 0.12;
+        gy += (my - gy) * 0.12;
+        glow.style.transform = `translate(${gx}px, ${gy}px)`;
+        requestAnimationFrame(followGlow);
+      })();
+
+      document.addEventListener("mouseover", e => {
+        const hit = e.target.closest("a, button, .card, .title span");
+        document.body.classList.toggle("hovering", !!hit);
+      });
+    }
+
+    /* ---------- SCROLL REVEAL ---------- */
+    const revealObserver = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add("in");
+          revealObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.2 });
+
+    document.querySelectorAll(".reveal").forEach((el, i) => {
+      el.style.transitionDelay = `${i * 0.15}s`;
+      revealObserver.observe(el);
+    });
+
+    /* ---------- EMBERS CANVAS ---------- */
+    const canvas = document.getElementById("embers");
+    const ctx = canvas.getContext("2d");
+    let W, H, embers = [];
+
+    function resize() {
+      W = canvas.width = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+      const count = Math.min(90, Math.floor((W * H) / 18000));
+      embers = Array.from({ length: count }, () => spawn(true));
+    }
+
+    function spawn(initial = false) {
+      const hot = Math.random() < 0.7;
+      return {
+        x: Math.random() * W,
+        y: initial ? Math.random() * H : H + 10,
+        r: Math.random() * 1.8 + 0.5,
+        vy: -(Math.random() * 0.6 + 0.2),
+        vx: (Math.random() - 0.5) * 0.3,
+        life: 0,
+        max: Math.random() * 400 + 200,
+        color: hot ? "215, 36, 47" : "188, 212, 255"
+      };
+    }
+
+    function drawEmbers() {
+      ctx.clearRect(0, 0, W, H);
+      const mxPx = (parseFloat(getComputedStyle(root).getPropertyValue("--mx")) || 0);
+      for (let i = 0; i < embers.length; i++) {
+        const e = embers[i];
+        e.life++;
+        e.x += e.vx + mxPx * 0.2;
+        e.y += e.vy;
+        const fade = Math.min(1, e.life / 60, (e.max - e.life) / 80);
+        if (e.life > e.max || e.y < -10) { embers[i] = spawn(false); continue; }
+        ctx.beginPath();
+        ctx.fillStyle = `rgba(${e.color}, ${0.6 * fade})`;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = `rgba(${e.color}, 0.8)`;
+        ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      requestAnimationFrame(drawEmbers);
+    }
+
+    window.addEventListener("resize", resize);
+    resize();
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) drawEmbers();
+  </script>
+</body>
+</html>
