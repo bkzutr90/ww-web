@@ -104,7 +104,7 @@
       100% { transform: translate(0, 0); }
     }
 
-    main, nav, footer { position: relative; z-index: 5; }
+    main, footer { position: relative; z-index: 5; }
 
     /* ---------- CURSOR ---------- */
     .cursor-glow {
@@ -145,13 +145,14 @@
     nav {
       position: sticky;
       top: 0;
+      z-index: 100;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 18px clamp(20px, 5vw, 70px);
-      background: linear-gradient(to bottom, rgba(6, 5, 7, 0.95), rgba(6, 5, 7, 0.6));
-      backdrop-filter: blur(4px);
-      border-bottom: 1px solid rgba(217, 205, 184, 0.08);
+      padding: 14px clamp(20px, 5vw, 70px);
+      background: #060507;
+      border-bottom: 1px solid rgba(217, 205, 184, 0.12);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
     }
 
     .brand {
